@@ -1,126 +1,40 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تجربة النظارة بالواقع المعزز</title>
-  <!-- مكتبة Three.js لإنشاء المشاهد ثلاثية الأبعاد -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- مكتبات MediaPipe و TensorFlow لتحميل نموذج FaceMesh -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/facemesh"></script>
-  <!-- GLTFLoader لتحميل نموذج النظارة بصيغة GLB -->
-  <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-    canvas { position: absolute; top: 0; left: 0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تجربة النظارات بالواقع المعزز</title>
+
+    <!-- استدعاء المكاتب من الإنترنت -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@1.7.2/aframe-ar.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- بث الكاميرا -->
-  <video id="video" autoplay playsinline></video>
-  <!-- كانفاس للرسم (يمكن استخدامه للتصحيح) -->
-  <canvas id="output"></canvas>
 
-  <script>
-    let video = document.getElementById("video");
-    let canvas = document.getElementById("output");
-    let ctx = canvas.getContext("2d");
-    let scene, camera, renderer, glassesModel;
-    let loader = new THREE.GLTFLoader();
+    <h1>جرب النظارات بالواقع المعزز!</h1>
 
-    // إعداد الكاميرا باستخدام getUserMedia
-    async function setupCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-        video.srcObject = stream;
-        return new Promise((resolve) => {
-          video.onloadedmetadata = () => {
-            video.play();
-            resolve();
-          };
-        });
-      } catch (error) {
-        console.error("تعذر الوصول إلى الكاميرا:", error);
-      }
-    }
+    <video id="video" autoplay playsinline></video>
 
-    // إعداد مشهد Three.js والكاميرا والمُرسم
-    function setupThreeJS() {
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      renderer = new THREE.WebGLRenderer({ alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
-      // ضبط موقع الكاميرا
-      camera.position.z = 2;
-      
-      // كائن مساعد لتحديد نقطة الأصل (يمكن حذفه لاحقاً)
-      let geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-      let material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      let cube = new THREE.Mesh(geometry, material);
-      cube.position.set(0, 0, -1);
-      scene.add(cube);
-    }
+    <div class="buttons">
+        <button onclick="changeGlasses()">تغيير النظارات</button>
+    </div>
 
-    // تحميل نموذج النظارة من الملف الموجود في نفس المجلد
-    function loadGlasses() {
-      loader.load("./glasses.glb", function (gltf) {
-        console.log("تم تحميل نموذج النظارة بنجاح");
-        if (glassesModel) scene.remove(glassesModel);
-        glassesModel = gltf.scene;
-        // تعديل المقياس؛ يمكن تغييره حسب حجم النموذج
-        glassesModel.scale.set(2, 2, 2);
-        // موضع ابتدائي للنموذج
-        glassesModel.position.set(0, 0, -1);
-        scene.add(glassesModel);
-      }, undefined, function (error) {
-        console.error("خطأ أثناء تحميل نموذج النظارة:", error);
-      });
-    }
+    <a-scene embedded arjs>
+        <a-camera position="0 1.6 0"></a-camera>
+        <a-assets>
+            <a-asset-item id="glassesModel1" src="assets/glasses1.glb"></a-asset-item>
+            <a-asset-item id="glassesModel2" src="assets/glasses2.glb"></a-asset-item>
+        </a-assets>
 
-    // تحميل نموذج FaceMesh للكشف عن ملامح الوجه
-    async function loadFaceMeshModel() {
-      const model = await facemesh.load();
-      detectFace(model);
-    }
+        <!-- نموذج النظارات -->
+        <a-entity id="glasses" gltf-model="#glassesModel1" position="0 1.7 -2" scale="1 1 1"></a-entity>
+    </a-scene>
 
-    // الكشف عن ملامح الوجه وتحديث موقع نموذج النظارة
-    async function detectFace(model) {
-      // تحديث أبعاد الكانفاس لتطابق أبعاد الفيديو
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+    <script src="script.js"></script>
 
-      const predictions = await model.estimateFaces(video);
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      console.log("عدد الوجوه المكتشفة:", predictions.length);
-
-      if (predictions.length > 0) {
-        const keypoints = predictions[0].scaledMesh;
-        // استخدام نقطة الأنف (المؤشر 168) كنقطة مرجعية
-        const nose = keypoints[168];
-        if (glassesModel) {
-          // تعديل موقع النظارة بناءً على إحداثيات الأنف
-          // نقوم بطرح نصف عرض وارتفاع الفيديو لتوسيط الإحداثيات
-          const x = (nose[0] - video.videoWidth / 2) / 100;
-          const y = -(nose[1] - video.videoHeight / 2) / 100;
-          glassesModel.position.set(x, y, -1);
-          console.log("موضع النظارة:", glassesModel.position);
-        }
-      }
-      renderer.render(scene, camera);
-      requestAnimationFrame(() => detectFace(model));
-    }
-
-    // بدء تشغيل الخطوات بعد تحميل الصفحة
-    setupCamera().then(() => {
-      setupThreeJS();
-      loadGlasses();
-      loadFaceMeshModel();
-    });
-  </script>
 </body>
 </html>
