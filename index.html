@@ -22,7 +22,7 @@
 <body>
   <!-- بث الكاميرا -->
   <video id="video" autoplay playsinline></video>
-  <!-- كانفاس لرسم الفيديو (للمساعدة في العرض أو التصحيح) -->
+  <!-- كانفاس للرسم (يمكن استخدامه للتصحيح) -->
   <canvas id="output"></canvas>
 
   <script>
@@ -32,7 +32,7 @@
     let scene, camera, renderer, glassesModel;
     let loader = new THREE.GLTFLoader();
 
-    // إعداد الكاميرا عبر getUserMedia
+    // إعداد الكاميرا باستخدام getUserMedia
     async function setupCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
@@ -55,18 +55,27 @@
       renderer = new THREE.WebGLRenderer({ alpha: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
-      // ضبط موقع الكاميرا ليكون قريباً من النموذج
+      // ضبط موقع الكاميرا
       camera.position.z = 2;
+      
+      // كائن مساعد لتحديد نقطة الأصل (يمكن حذفه لاحقاً)
+      let geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+      let material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+      let cube = new THREE.Mesh(geometry, material);
+      cube.position.set(0, 0, -1);
+      scene.add(cube);
     }
 
-    // تحميل نموذج النظارة بصيغة GLB
+    // تحميل نموذج النظارة من الملف الموجود في نفس المجلد
     function loadGlasses() {
-      loader.load("glasses.glb", function (gltf) {
-        // إزالة النموذج السابق إن وجد
+      loader.load("./glasses.glb", function (gltf) {
+        console.log("تم تحميل نموذج النظارة بنجاح");
         if (glassesModel) scene.remove(glassesModel);
         glassesModel = gltf.scene;
-        // ضبط مقياس النموذج؛ قد تحتاج لضبط هذه القيمة حسب حجم النموذج
-        glassesModel.scale.set(0.5, 0.5, 0.5);
+        // تعديل المقياس؛ يمكن تغييره حسب حجم النموذج
+        glassesModel.scale.set(2, 2, 2);
+        // موضع ابتدائي للنموذج
+        glassesModel.position.set(0, 0, -1);
         scene.add(glassesModel);
       }, undefined, function (error) {
         console.error("خطأ أثناء تحميل نموذج النظارة:", error);
@@ -81,13 +90,13 @@
 
     // الكشف عن ملامح الوجه وتحديث موقع نموذج النظارة
     async function detectFace(model) {
-      // ضبط حجم الكانفاس بناءً على أبعاد الفيديو
+      // تحديث أبعاد الكانفاس لتطابق أبعاد الفيديو
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
       const predictions = await model.estimateFaces(video);
-      // رسم صورة الفيديو على الكانفاس (للمساعدة في التصحيح)
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      console.log("عدد الوجوه المكتشفة:", predictions.length);
 
       if (predictions.length > 0) {
         const keypoints = predictions[0].scaledMesh;
@@ -95,15 +104,18 @@
         const nose = keypoints[168];
         if (glassesModel) {
           // تعديل موقع النظارة بناءً على إحداثيات الأنف
-          // هذه القيم قد تحتاج لتعديل لتناسب حجم وإحداثيات النموذج الخاص بك
-          glassesModel.position.set(nose[0] / 100 - 3, -nose[1] / 100 + 2, -nose[2] / 500 + 2);
+          // نقوم بطرح نصف عرض وارتفاع الفيديو لتوسيط الإحداثيات
+          const x = (nose[0] - video.videoWidth / 2) / 100;
+          const y = -(nose[1] - video.videoHeight / 2) / 100;
+          glassesModel.position.set(x, y, -1);
+          console.log("موضع النظارة:", glassesModel.position);
         }
       }
       renderer.render(scene, camera);
       requestAnimationFrame(() => detectFace(model));
     }
 
-    // تشغيل جميع الخطوات عند تحميل الصفحة
+    // بدء تشغيل الخطوات بعد تحميل الصفحة
     setupCamera().then(() => {
       setupThreeJS();
       loadGlasses();
