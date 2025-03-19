@@ -50,12 +50,12 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // تحميل نموذج النظارة من مجلد المشروع
+            // تحميل نموذج النظارة glasses1.glb من مجلد المشروع
             const loader = new THREE.GLTFLoader();
-            loader.load('./glasses2.glb', (gltf) => {  
+            loader.load('./glasses1.glb', (gltf) => {  
                 console.log("✅ تم تحميل النموذج بنجاح!");  // تحقق من نجاح التحميل
                 model = gltf.scene;
-                model.scale.set(0.1, 0.1, 0.1); // ضبط الحجم
+                model.scale.set(0.3, 0.3, 0.3); // ضبط الحجم بشكل أكبر
                 scene.add(model);
             }, undefined, (error) => {
                 console.error('❌ خطأ في تحميل النموذج:', error);
@@ -80,6 +80,7 @@
 
                     // ضبط موضع النظارة فوق الأنف
                     if (model) {
+                        // تعديل موضع النظارة قليلاً لتكون في المكان الصحيح
                         model.position.set(nose[0] / 100 - 1, -nose[1] / 100 + 1, -2);
                     }
                 }
