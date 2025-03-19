@@ -34,10 +34,15 @@ async function detectFace() {
 
 // تغيير النظارات عند الضغط على الزر
 let glassesIndex = 1;
-function changeGlasses() {
+document.getElementById("tryGlassesBtn").addEventListener("click", function() {
+    // إظهار النظارات فقط عند الضغط على الزر
+    const glasses = document.getElementById("glasses");
+    glasses.setAttribute("visible", "true");
+
+    // تغيير النظارات
     glassesIndex = glassesIndex === 1 ? 2 : 1;
     document.getElementById("glasses").setAttribute("gltf-model", `#glassesModel${glassesIndex}`);
-}
+});
 
 // بدء الكاميرا عند تحميل الصفحة
 startCamera();
