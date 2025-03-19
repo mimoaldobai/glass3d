@@ -52,12 +52,13 @@
 
             // تحميل نموذج النظارة من مجلد المشروع
             const loader = new THREE.GLTFLoader();
-            loader.load('./glasses1.glb', (gltf) => {  // تأكد أن الملف في نفس مجلد HTML
+            loader.load('./glasses1.glb', (gltf) => {  
+                console.log("✅ تم تحميل النموذج بنجاح!");  // تحقق من نجاح التحميل
                 model = gltf.scene;
                 model.scale.set(0.1, 0.1, 0.1); // ضبط الحجم
                 scene.add(model);
             }, undefined, (error) => {
-                console.error('خطأ في تحميل النموذج:', error);
+                console.error('❌ خطأ في تحميل النموذج:', error);
             });
 
             // إعداد الفيديو والكاميرا
