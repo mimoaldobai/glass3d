@@ -45,7 +45,7 @@
             // إنشاء مشهد Three.js
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 2;
+            camera.position.z = 2; // تحريك الكاميرا بحيث تكون واضحة
             renderer = new THREE.WebGLRenderer({ alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
@@ -53,9 +53,9 @@
             // تحميل نموذج النظارة glasses1.glb من مجلد المشروع
             const loader = new THREE.GLTFLoader();
             loader.load('./glasses1.glb', (gltf) => {
-                console.log("✅ تم تحميل النموذج بنجاح!");  // تحقق من نجاح التحميل
+                console.log("✅ تم تحميل النموذج بنجاح!");
                 model = gltf.scene;
-                model.scale.set(0.3, 0.3, 0.3); // ضبط الحجم بشكل أكبر
+                model.scale.set(0.3, 0.3, 0.3); // ضبط الحجم بشكل أكبر ليتناسب مع الوجه
                 scene.add(model);
             }, undefined, (error) => {
                 console.error('❌ خطأ في تحميل النموذج:', error);
@@ -84,22 +84,22 @@
 
                     console.log("🌟 النقاط على الوجه:", leftEye, rightEye, nose);  // تحقق من النقاط
 
-                    // ضبط موضع النظارة بشكل صحيح على الأنف بين العينين
+                    // وضع النظارة على الأنف
                     if (model) {
                         // حساب المسافة بين العينين لتحديد مكان النظارة
                         const eyeDistance = Math.sqrt(Math.pow(leftEye[0] - rightEye[0], 2) + Math.pow(leftEye[1] - rightEye[1], 2));
-                        console.log("مسافة العينين:", eyeDistance); // تحقق من المسافة بين العينين
 
-                        // وضع النظارة على الأنف بين العينين بناءً على المسافة
-                        model.position.set(nose[0] / 100 - 1, -nose[1] / 100 + 1, -2);
+                        // وضع النظارة بشكل دقيق على الأنف
+                        model.position.set(nose[0] / 100 - 1, -nose[1] / 100 + 1, -2); // يمكن تعديل هذه القيم بحسب الحاجة
                         model.rotation.set(0, 0, 0);  // ضبط زاوية النظارة لتكون بشكل مستقيم
                         model.scale.set(eyeDistance / 200, eyeDistance / 200, eyeDistance / 200); // ضبط حجم النظارة بناءً على المسافة بين العينين
                     }
                 }
-                requestAnimationFrame(detectFace);
+                requestAnimationFrame(detectFace); // تحديث حركة الوجه باستمرار
             }
             detectFace();
 
+            // دالة الرسومات المتحركة
             function animate() {
                 requestAnimationFrame(animate);
                 renderer.render(scene, camera);
