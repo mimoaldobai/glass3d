@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تجربة النظارات بالواقع المعزز</title>
 
-    <!-- تحميل المكتبات من الإنترنت -->
+    <!-- استدعاء المكاتب عبر الإنترنت -->
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ar.js@1.7.2/aframe-ar.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
@@ -17,12 +17,14 @@
 
     <h1>جرب النظارات بالواقع المعزز!</h1>
 
+    <!-- تشغيل الكاميرا الأمامية -->
     <video id="video" autoplay playsinline></video>
 
     <div class="buttons">
         <button onclick="changeGlasses()">تغيير النظارات</button>
     </div>
 
+    <!-- مشهد A-Frame للواقع المعزز -->
     <a-scene embedded arjs>
         <a-camera position="0 1.6 0"></a-camera>
         <a-assets>
@@ -30,7 +32,7 @@
             <a-asset-item id="glassesModel2" src="glasses2.glb"></a-asset-item>
         </a-assets>
 
-        <!-- نموذج النظارات -->
+        <!-- نموذج النظارات ثلاثية الأبعاد -->
         <a-entity id="glasses" gltf-model="#glassesModel1" position="0 1.7 -2" scale="1 1 1"></a-entity>
     </a-scene>
 
