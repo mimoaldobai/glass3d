@@ -3,40 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تجربة النظارات باستخدام الكاميرا الأمامية</title>
+    <title>تجربة نظارة في الواقع المعزز</title>
+    
+    <!-- مكتبة Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
 
-    <!-- استدعاء المكاتب من الإنترنت -->
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <!-- مكتبات تتبع الوجه -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/facemesh"></script>
 
-    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+        }
+        video {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.5;
+        }
+    </style>
 </head>
 <body>
-
-    <h1>تجربة النظارات باستخدام الكاميرا الأمامية!</h1>
-
-    <!-- كاميرا الفيديو -->
     <video id="video" autoplay playsinline></video>
+    <canvas id="output"></canvas>
 
-    <!-- زر لتجربة النظارة -->
-    <div class="buttons">
-        <button id="tryGlassesBtn">تجربة النظارة</button>
-    </div>
+    <script>
+        let scene, camera, renderer, model, video, canvas, ctx;
 
-    <a-scene embedded arjs>
-        <a-camera position="0 1.6 0"></a-camera>
-        <a-assets>
-            <a-asset-item id="glassesModel1" src="glasses1.glb"></a-asset-item>
-            <a-asset-item id="glassesModel2" src="glasses2.glb"></a-asset-item>
-        </a-assets>
+        async function init() {
+            // إنشاء مشهد Three.js
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 2;
+            renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
 
-        <!-- نموذج النظارات -->
-        <a-entity id="glasses" gltf-model="#glassesModel1" position="0 1.7 -2" scale="1 1 1" visible="false"></a-entity>
-    </a-scene>
+            // تحميل نموذج النظارة من مجلد المشروع
+            const loader = new THREE.GLTFLoader();
+            loader.load('./glasses1.glb', (gltf) => {  // تأكد أن الملف في نفس مجلد HTML
+                model = gltf.scene;
+                model.scale.set(0.1, 0.1, 0.1); // ضبط الحجم
+                scene.add(model);
+            }, undefined, (error) => {
+                console.error('خطأ في تحميل النموذج:', error);
+            });
 
-    <script src="script.js"></script>
+            // إعداد الفيديو والكاميرا
+            video = document.getElementById('video');
+            canvas = document.getElementById('output');
+            ctx = canvas.getContext('2d');
+            navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+                video.srcObject = stream;
+            });
 
+            // تحميل نموذج تتبع الوجه
+            const faceModel = await facemesh.load();
+            
+            async function detectFace() {
+                const predictions = await faceModel.estimateFaces({ input: video });
+                if (predictions.length > 0) {
+                    const keypoints = predictions[0].scaledMesh;
+                    const nose = keypoints[168]; // نقطة منتصف الأنف
+
+                    // ضبط موضع النظارة فوق الأنف
+                    if (model) {
+                        model.position.set(nose[0] / 100 - 1, -nose[1] / 100 + 1, -2);
+                    }
+                }
+                requestAnimationFrame(detectFace);
+            }
+            detectFace();
+
+            function animate() {
+                requestAnimationFrame(animate);
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+        init();
+    </script>
 </body>
 </html>
