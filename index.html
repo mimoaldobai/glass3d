@@ -40,13 +40,16 @@
 
         async function init() {
             // تحميل النماذج عبر الإنترنت
-            await Promise.all([
-                faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js/weights/ssdMobilenetv1_model-shard1'),
-                faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js/weights/faceLandmark68Net_model-shard1'),
-                faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js/weights/faceRecognitionNet_model-shard1')
-            ]);
-
-            console.log("✅ تم تحميل النماذج بنجاح!");
+            try {
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js/weights/ssdMobilenetv1_model-shard1'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js/weights/faceLandmark68Net_model-shard1'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js/weights/faceRecognitionNet_model-shard1')
+                ]);
+                console.log("✅ تم تحميل النماذج بنجاح!");
+            } catch (error) {
+                console.error("❌ خطأ في تحميل النماذج:", error);
+            }
 
             // إنشاء مشهد Three.js
             scene = new THREE.Scene();
@@ -71,9 +74,14 @@
             video = document.getElementById('video');
             canvas = document.getElementById('output');
             ctx = canvas.getContext('2d');
-            navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
-            });
+                console.log("✅ تم تشغيل الفيديو من الكاميرا");
+            } catch (err) {
+                console.error("❌ فشل في الوصول إلى الكاميرا:", err);
+            }
 
             // تحميل نموذج تتبع الوجه
             const faceModel = await faceapi.nets.ssdMobilenetv1.loadFromUri('/models'); // استيراد النماذج باستخدام CDN
