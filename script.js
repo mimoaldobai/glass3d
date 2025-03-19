@@ -1,44 +1,43 @@
 // بدء تشغيل الكاميرا الأمامية
 async function startCamera() {
     const video = document.getElementById("video");
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" } // استخدام الكاميرا الأمامية
-    });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
     video.srcObject = stream;
-}
-startCamera();
 
-// تحميل نموذج التعرف على ملامح الوجه
+    video.onloadeddata = () => {
+        detectFace();
+    };
+}
+
+// تحميل نموذج الذكاء الاصطناعي للتعرف على الوجه
 async function loadFaceMesh() {
-    const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
-    const detector = await faceLandmarksDetection.createDetector(model);
-    return detector;
+    return await facemesh.load();
 }
 
-let faceDetector;
-loadFaceMesh().then(detector => faceDetector = detector);
-
-// تحديث موضع النظارات بناءً على الوجه
+// تحديد موقع الأنف لوضع النظارات عليه
 async function detectFace() {
-    if (!faceDetector) return;
-
     const video = document.getElementById("video");
-    const faces = await faceDetector.estimateFaces(video);
+    const glasses = document.getElementById("glasses");
+    const faceMesh = await loadFaceMesh();
 
-    if (faces.length > 0) {
-        const nose = faces[0].keypoints.find(k => k.name === "nose");
-
-        if (nose) {
-            const glasses = document.getElementById("glasses");
-            glasses.setAttribute("position", `${nose.x / 100} ${nose.y / 100} -2`);
+    async function updateGlassesPosition() {
+        const faces = await faceMesh.estimateFaces(video);
+        if (faces.length > 0) {
+            const nose = faces[0].annotations.noseTip[0]; // تحديد موقع الأنف
+            glasses.setAttribute("position", `${nose[0] / 100} ${nose[1] / 100} -2`);
         }
+        requestAnimationFrame(updateGlassesPosition);
     }
+
+    updateGlassesPosition();
 }
-setInterval(detectFace, 100);
 
 // تغيير النظارات عند الضغط على الزر
 let glassesIndex = 1;
 function changeGlasses() {
     glassesIndex = glassesIndex === 1 ? 2 : 1;
-    document.getElementById("glasses").setAttribute("gltf-model", `glasses${glassesIndex}.glb`);
+    document.getElementById("glasses").setAttribute("gltf-model", `#glassesModel${glassesIndex}`);
 }
+
+// بدء الكاميرا عند تحميل الصفحة
+startCamera();
