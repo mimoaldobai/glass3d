@@ -52,7 +52,7 @@
 
             // تحميل نموذج النظارة glasses1.glb من مجلد المشروع
             const loader = new THREE.GLTFLoader();
-            loader.load('./glasses1.glb', (gltf) => {  
+            loader.load('./glasses1.glb', (gltf) => {
                 console.log("✅ تم تحميل النموذج بنجاح!");  // تحقق من نجاح التحميل
                 model = gltf.scene;
                 model.scale.set(0.3, 0.3, 0.3); // ضبط الحجم بشكل أكبر
@@ -76,12 +76,21 @@
                 const predictions = await faceModel.estimateFaces({ input: video });
                 if (predictions.length > 0) {
                     const keypoints = predictions[0].scaledMesh;
+
+                    // نقوم بتحديد النقاط على الوجه
+                    const leftEye = keypoints[33]; // العين اليسرى
+                    const rightEye = keypoints[133]; // العين اليمنى
                     const nose = keypoints[168]; // نقطة منتصف الأنف
 
-                    // ضبط موضع النظارة فوق الأنف
+                    // ضبط موضع النظارة بشكل صحيح على الأنف بين العينين
                     if (model) {
-                        // تعديل موضع النظارة قليلاً لتكون في المكان الصحيح
+                        // حساب المسافة بين العينين لتحديد مكان النظارة
+                        const eyeDistance = Math.sqrt(Math.pow(leftEye[0] - rightEye[0], 2) + Math.pow(leftEye[1] - rightEye[1], 2));
+
+                        // وضع النظارة على الأنف بين العينين بناءً على المسافة
                         model.position.set(nose[0] / 100 - 1, -nose[1] / 100 + 1, -2);
+                        model.rotation.set(0, 0, 0);  // ضبط زاوية النظارة لتكون بشكل مستقيم
+                        model.scale.set(eyeDistance / 200, eyeDistance / 200, eyeDistance / 200); // ضبط حجم النظارة بناءً على المسافة بين العينين
                     }
                 }
                 requestAnimationFrame(detectFace);
