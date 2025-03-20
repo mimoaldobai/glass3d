@@ -3,167 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظارة AR بتقنية التعرف على الوجه</title>
+    <title>تجربة النظارات افتراضيًا</title>
 
-    <!-- مكتبة Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
-
-    <!-- مكتبة face-api.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+    <!-- استدعاء مكتبة A-Frame الخاصة بالواقع المعزز -->
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <!-- استدعاء مكتبة AR.js الخاصة بالواقع المعزز -->
+    <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/AR.js/aframe/build/aframe-ar.js"></script>
 
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-color: #000;
+            background-color: #f4f4f4;
         }
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        video {
-            display: none;
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.8;
-        }
-        .controls {
-            position: absolute;
-            bottom: 20px;
-            display: flex;
-            gap: 10px;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #007BFF;
+
+        header {
+            text-align: center;
+            padding: 10px;
+            background-color: #333;
             color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
         }
-        button:hover {
-            background-color: #0056b3;
+
+        h1 {
+            font-size: 2em;
+        }
+
+        p {
+            font-size: 1.2em;
+        }
+
+        #instructions {
+            text-align: center;
+            padding: 20px;
+        }
+
+        a-scene {
+            width: 100%;
+            height: 100vh;
         }
     </style>
 </head>
 <body>
+    <header>
+        <h1>تجربة النظارات افتراضيًا</h1>
+        <p>جرب النظارات التي ترغب بها دون الحاجة إلى الذهاب إلى المتجر!</p>
+    </header>
 
-    <video id="video" autoplay playsinline></video>
-    <canvas id="output"></canvas>
+    <section id="instructions">
+        <p>اتبع التعليمات أدناه لتجربة النظارات افتراضيًا على وجهك باستخدام كاميرا جهازك.</p>
+        <p>قم بتوجيه كاميرا جهازك إلى العلامة لعرض النظارات.</p>
+    </section>
 
-    <!-- أزرار التحكم -->
-    <div class="controls">
-        <button id="showModel">عرض النموذج</button>
-        <button id="showCamera" style="display:none;">عرض الكاميرا</button>
-        <button id="startAR" style="display:none;">تجربة</button>
-    </div>
+    <!-- مشهد A-Frame لتمكين الواقع المعزز -->
+    <a-scene embedded arjs="markersAreaEnabled: false; trackingBackend: artoolkit;">
+        <!-- تحميل نموذج 3D للنظارات (يرجى تغيير المسار إلى ملف النظارات الخاص بك) -->
+        <a-assets>
+            <a-asset-item id="glassesModel" src="glass1.glb"></a-asset-item>
+        </a-assets>
 
-    <script>
-        let scene, camera, renderer, model, video, canvas, ctx;
-        let isModelLoaded = false;
-        let isFaceDetectionRunning = false;
+        <!-- إضافة العلامة المستخدمة في الواقع المعزز -->
+        <a-marker preset="hiro">
+            <!-- إضافة نموذج النظارات 3D إلى المشهد -->
+            <a-entity gltf-model="#glassesModel" scale="0.5 0.5 0.5" rotation="0 180 0"></a-entity>
+        </a-marker>
 
-        function initScene() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 2;
-            
-            renderer = new THREE.WebGLRenderer({ alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-        }
-
-        function loadModel() {
-            if (isModelLoaded) return;
-
-            const loader = new THREE.GLTFLoader();
-            loader.load('./glass1.glb', (gltf) => {
-                model = gltf.scene;
-                model.scale.set(0.3, 0.3, 0.3);
-                model.position.set(0, 0, 0);
-                scene.add(model);
-                isModelLoaded = true;
-
-                document.getElementById("showCamera").style.display = "block"; // إظهار زر الكاميرا بعد تحميل النموذج
-            }, undefined, (error) => {
-                console.error('❌ خطأ في تحميل النموذج:', error);
-            });
-        }
-
-        function startCamera() {
-            video = document.getElementById('video');
-            canvas = document.getElementById('output');
-            ctx = canvas.getContext('2d');
-
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-                .then((stream) => {
-                    video.srcObject = stream;
-                    video.style.display = "block";
-                    document.getElementById("startAR").style.display = "block"; // إظهار زر "تجربة"
-                })
-                .catch((error) => console.error("❌ فشل في الوصول إلى الكاميرا:", error));
-        }
-
-        async function startFaceTracking() {
-            if (isFaceDetectionRunning) return;
-            isFaceDetectionRunning = true;
-
-            await Promise.all([
-                faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/weights'),
-                faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js/weights')
-            ]);
-
-            async function detectFace() {
-                const predictions = await faceapi.detectSingleFace(video).withFaceLandmarks();
-                if (predictions) {
-                    const keypoints = predictions.landmarks.positions;
-                    const leftEye = keypoints[33];
-                    const rightEye = keypoints[133];
-                    const nose = keypoints[168];
-
-                    if (model) {
-                        const eyeDistance = Math.sqrt(Math.pow(leftEye.x - rightEye.x, 2) + Math.pow(leftEye.y - rightEye.y, 2));
-
-                        model.position.set(nose.x / 100 - 1, -nose.y / 100 + 1, -2);
-                        model.scale.set(eyeDistance / 200, eyeDistance / 200, eyeDistance / 200);
-                    }
-                }
-                requestAnimationFrame(detectFace);
-            }
-            detectFace();
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }
-
-        document.getElementById("showModel").addEventListener("click", () => {
-            initScene();
-            loadModel();
-            animate();
-        });
-
-        document.getElementById("showCamera").addEventListener("click", () => {
-            startCamera();
-        });
-
-        document.getElementById("startAR").addEventListener("click", () => {
-            startFaceTracking();
-        });
-    </script>
-
+        <!-- إضافة كاميرا لتمكين الواقع المعزز -->
+        <a-entity camera></a-entity>
+    </a-scene>
 </body>
 </html>
