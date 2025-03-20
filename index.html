@@ -3,72 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تجربة النظارات افتراضيًا</title>
+    <title>تجربة النظارات افتراضيًا | Virtual Try-On</title>
 
-    <!-- استدعاء مكتبة A-Frame الخاصة بالواقع المعزز -->
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <!-- استدعاء مكتبة AR.js الخاصة بالواقع المعزز -->
-    <script src="https://cdn.jsdelivr.net/gh/jeromeetienne/AR.js/aframe/build/aframe-ar.js"></script>
+    <!-- مكتبة Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/facemesh"></script>
+    
+    <!-- مكتبة GLTFLoader لتحميل نموذج النظارات -->
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
 
     <style>
         body {
             margin: 0;
-            overflow: hidden;
-            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f9f9f9;
         }
 
         header {
-            text-align: center;
-            padding: 10px;
             background-color: #333;
             color: white;
+            padding: 15px;
+            font-size: 1.5em;
         }
 
-        h1 {
-            font-size: 2em;
-        }
-
-        p {
-            font-size: 1.2em;
-        }
-
-        #instructions {
-            text-align: center;
-            padding: 20px;
-        }
-
-        a-scene {
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 100vh;
+            height: auto;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>تجربة النظارات افتراضيًا</h1>
-        <p>جرب النظارات التي ترغب بها دون الحاجة إلى الذهاب إلى المتجر!</p>
-    </header>
 
-    <section id="instructions">
-        <p>اتبع التعليمات أدناه لتجربة النظارات افتراضيًا على وجهك باستخدام كاميرا جهازك.</p>
-        <p>قم بتوجيه كاميرا جهازك إلى العلامة لعرض النظارات.</p>
-    </section>
+    <header>تجربة النظارات افتراضيًا (Virtual Try-On)</header>
 
-    <!-- مشهد A-Frame لتمكين الواقع المعزز -->
-    <a-scene embedded arjs="markersAreaEnabled: false; trackingBackend: artoolkit;">
-        <!-- تحميل نموذج 3D للنظارات (يرجى تغيير المسار إلى ملف النظارات الخاص بك) -->
-        <a-assets>
-            <a-asset-item id="glassesModel" src="glass1.glb"></a-asset-item>
-        </a-assets>
+    <!-- كاميرا المستخدم -->
+    <video id="video" autoplay playsinline></video>
 
-        <!-- إضافة العلامة المستخدمة في الواقع المعزز -->
-        <a-marker preset="hiro">
-            <!-- إضافة نموذج النظارات 3D إلى المشهد -->
-            <a-entity gltf-model="#glassesModel" scale="0.5 0.5 0.5" rotation="0 180 0"></a-entity>
-        </a-marker>
+    <script>
+        let scene, camera, renderer, glasses;
+        let video = document.getElementById("video");
 
-        <!-- إضافة كاميرا لتمكين الواقع المعزز -->
-        <a-entity camera></a-entity>
-    </a-scene>
+        async function startCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+        }
+
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            let light = new THREE.AmbientLight(0xffffff, 1);
+            scene.add(light);
+
+            // تحميل نموذج النظارات
+            let loader = new THREE.GLTFLoader();
+            loader.load("glass1.glb", (gltf) => {
+                glasses = gltf.scene;
+                glasses.scale.set(5, 5, 5); // ضبط الحجم
+                scene.add(glasses);
+            });
+
+            camera.position.z = 5;
+        }
+
+        async function loadFaceMesh() {
+            const model = await facemesh.load();
+            const detect = async () => {
+                const predictions = await model.estimateFaces({ input: video });
+
+                if (predictions.length > 0 && glasses) {
+                    const keypoints = predictions[0].scaledMesh;
+                    const nose = keypoints[168]; // موضع الأنف
+
+                    // تحديث موقع النظارات بناءً على الأنف
+                    glasses.position.set(nose[0] / 100, -nose[1] / 100, -3);
+                }
+
+                renderer.render(scene, camera);
+                requestAnimationFrame(detect);
+            };
+            detect();
+        }
+
+        startCamera().then(() => {
+            initThreeJS();
+            loadFaceMesh();
+        });
+    </script>
+
 </body>
 </html>
