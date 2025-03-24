@@ -1,113 +1,115 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تجربة النظارات افتراضيًا | Virtual Try-On</title>
-
-    <!-- مكتبة Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/facemesh"></script>
-    
-    <!-- مكتبة GLTFLoader لتحميل نموذج النظارات -->
-    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
-
+    <title>Virtual Try-On Glasses</title>
     <style>
-        body {
+        /* Reset default styles */
+        * {
+            box-sizing: border-box;
             margin: 0;
+            padding: 0;
+        }
+
+        body {
             font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f9f9f9;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
 
-        header {
-            background-color: #333;
-            color: white;
-            padding: 15px;
-            font-size: 1.5em;
-        }
-
-        video {
-            position: absolute;
-            top: 0;
-            left: 0;
+        .container {
+            position: relative;
             width: 100%;
+            max-width: 800px;
+            text-align: center;
+            background-color: #fff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Ensures the container takes up at least the full height of the viewport */
+        }
+
+        .header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 0;
+            border-bottom: 2px solid #666;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: normal;
+        }
+
+        .video-wrapper {
+            flex: 1; /* Allows the video wrapper to expand and take remaining vertical space */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            border: 2px solid #000;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        #video_feed {
+            max-width: 100%;
             height: auto;
         }
 
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
+        .try-on-instructions {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .try-on-instructions p {
+            margin-bottom: 10px;
+        }
+
+        /* Styling for footer */
+        footer {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 0;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
             width: 100%;
-            height: 100%;
+            text-align: center;
+            margin-top: auto; /* Pushes the footer to the bottom of the container */
+        }
+
+        footer p {
+            margin: 0;
         }
     </style>
 </head>
 <body>
-
-    <header>تجربة النظارات افتراضيًا (Virtual Try-On)</header>
-
-    <!-- كاميرا المستخدم -->
-    <video id="video" autoplay playsinline></video>
-
-    <script>
-        let scene, camera, renderer, glasses;
-        let video = document.getElementById("video");
-
-        async function startCamera() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            video.srcObject = stream;
-        }
-
-        function initThreeJS() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-
-            let light = new THREE.AmbientLight(0xffffff, 1);
-            scene.add(light);
-
-            // تحميل نموذج النظارات
-            let loader = new THREE.GLTFLoader();
-            loader.load("glass1.glb", (gltf) => {
-                glasses = gltf.scene;
-                glasses.scale.set(5, 5, 5); // ضبط الحجم
-                scene.add(glasses);
-            });
-
-            camera.position.z = 5;
-        }
-
-        async function loadFaceMesh() {
-            const model = await facemesh.load();
-            const detect = async () => {
-                const predictions = await model.estimateFaces({ input: video });
-
-                if (predictions.length > 0 && glasses) {
-                    const keypoints = predictions[0].scaledMesh;
-                    const nose = keypoints[168]; // موضع الأنف
-
-                    // تحديث موقع النظارات بناءً على الأنف
-                    glasses.position.set(nose[0] / 100, -nose[1] / 100, -3);
-                }
-
-                renderer.render(scene, camera);
-                requestAnimationFrame(detect);
-            };
-            detect();
-        }
-
-        startCamera().then(() => {
-            initThreeJS();
-            loadFaceMesh();
-        });
-    </script>
-
+    <div class="container">
+        <div class="header">
+            <h1>Virtual Try-On Glasses</h1>
+        </div>
+        <div class="video-wrapper">
+            <img id="video_feed" src="{{ url_for('video_feed') }}" alt="Webcam Feed">
+        </div>
+        <div class="try-on-instructions">
+            <p>Position your face within the camera frame.</p>
+        </div>
+        <footer>
+            <p>&copy; 2024 Your Company. All rights reserved.</p>
+        </footer>
+    </div>
 </body>
 </html>
