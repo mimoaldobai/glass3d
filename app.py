@@ -10,7 +10,7 @@ mp_face_detection = mp.solutions.face_detection
 mp_drawing = mp.solutions.drawing_utils
 
 # Load accessory image (e.g., glasses)
-accessory = cv2.imread('static/glasses.png', cv2.IMREAD_UNCHANGED)
+accessory = cv2.imread('glasses.png', cv2.IMREAD_UNCHANGED)
 
 # Check if the accessory image has an alpha channel
 if accessory.shape[2] != 4:
